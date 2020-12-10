@@ -12,6 +12,7 @@ import com.cloudbees.groovy.cps.NonCPS
 
 class CommonStages {
     def script
+    def dockerImage
     Map env
     ScriptUtils utils
     
@@ -35,13 +36,39 @@ class CommonStages {
      */
     def stageCheckout(Map env) {
         script.stage("Checkout") {
-            script.checkout script.scm
-            script.sh "git submodule update --init --recursive"
+            /*script.checkout script.scm
+            script.sh "git submodule update --init --recursive"*/
+            utils.checkout()
         }
     }
 
     def stageCleanup() {
         script.cleanWs()
+    }
+
+    def stageBuildAndTestDocker() {
+
+        if (utils.isDocker()) {
+            Logger.info("Running inside Docker")
+        } else {
+            Logger.info("Running outside Docker")
+        }
+
+        script.stage("Build Docker") {
+            dockerImage = script.docker.build("halo/yocto-image")
+        }
+        script.stage("Test Docker") {
+            dockerImage.inside {
+                script.sh 'echo "Tests passed"'
+
+                if (utils.isDocker()) {
+                    Logger.info("Running inside Docker")
+                } else {
+                    Logger.info("Running outside Docker")
+                }
+            }
+        }
+
     }
 
 }

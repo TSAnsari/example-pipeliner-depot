@@ -31,11 +31,20 @@ class ComponentStages {
      * @param buildDir String path to the build directory
      * @param cmakeArgs String additional cmake arguments
      */
-    def stageBuild(String sourceDir, String buildDir, String cmakeArgs) {
+    def stageBuild(String sourceDir, String buildDir, String cmakeArgs, def dockerImage) {
         script.stage("Build") {
+        dockerImage.inside {
+
+            if (utils.isDocker()) {
+                Logger.info("Running inside Docker in component stage")
+            } else {
+                Logger.info("Running outside Docker in component stage")
+            }
+
             script.sh "cmake" + " -H" + sourceDir + " -B" + buildDir +
                 " -DCMAKE_BUILD_TYPE=Debug " + (cmakeArgs ? cmakeArgs : "")
             script.sh "cmake --build ${buildDir} -- -j\$(nproc)"
+        }
         }
     }
 
@@ -44,11 +53,20 @@ class ComponentStages {
      *
      * @param 
      */
-    def stageUnitTests(String buildDir) {
+    def stageUnitTests(String buildDir, def dockerImage) {
         script.stage("Unit tests") {
-            String env = "GTEST_OUTPUT=\"xml:`pwd`/${buildDir}/unit-test/\" CTEST_OUTPUT_ON_FAILURE=1"
-            script.sh "${env} cmake --build ${buildDir} --target unit-test"
-            script.junit "${buildDir}/unit-test/*.xml"
+            dockerImage.inside {
+
+                if (utils.isDocker()) {
+                    Logger.info("Running inside Docker in component stage")
+                } else {
+                    Logger.info("Running outside Docker in component stage")
+                }
+
+                String env = "GTEST_OUTPUT=\"xml:`pwd`/${buildDir}/unit-test/\" CTEST_OUTPUT_ON_FAILURE=1"
+                script.sh "${env} cmake --build ${buildDir} --target unit-test"
+                script.junit "${buildDir}/unit-test/*.xml"
+            }
         }
     }
 }

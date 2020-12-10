@@ -63,12 +63,15 @@ class ComponentPipeline extends BasePipeline {
         String buildDir = "build"
 
         commonStages.stageCheckout(env);
-        componentStages.stageBuild(".", buildDir, stageInput['cmakeArgs']);
+
+        commonStages.stageBuildAndTestDocker();
+
+        componentStages.stageBuild(".", buildDir, stageInput['cmakeArgs'], commonStages.dockerImage);
 
         Logger.info("JEENA: " + stageInput.inspect())
 
         if (stageInput['rununittests'] && stageInput['rununittests'].equalsIgnoreCase('true')) {
-            componentStages.stageUnitTests(buildDir);
+            componentStages.stageUnitTests(buildDir, commonStages.dockerImage);
         }
     }
 
